@@ -1,4 +1,4 @@
-const { Producer, Client } = require('kafka-node');
+const { Producer, KafkaClient } = require('kafka-node');
 const logtify = require('logtify');
 
 const { streamBuffer } = logtify;
@@ -10,15 +10,19 @@ class Kafka extends stream.Subscriber {
     this.ready = false;
     this.settings = configs || {};
     if (this.settings.KAFKA_URL && this.settings.KAFKA_TOPIC) {
-      const kafkaClient = new Client({
-        connectionString: this.settings.KAFKA_URL,
+      this.kafkaClient = new KafkaClient({
+        kafkaHost: this.settings.KAFKA_URL,
+        connectTimeout: this.settings.KAFKA_CONNECT_TIMEOUT || 5000,
+        requestTimeout: this.settings.KAFKA_REQUEST_TIMEOUT || 10000,
+        autoConnect: true
       });
-      this.producer = new Producer(kafkaClient);
-      this.producer.once('ready', () => {
+      this.kafkaProducer = new Producer(this.kafkaClient);
+      this.kafkaProducer.once('ready', () => {
+        console.log('Kafka producer is ready');
         this.ready = true;
-        this.producer.createTopics([this.settings.KAFKA_TOPIC], false, () => {});
+        this.kafkaProducer.createTopics([this.settings.KAFKA_TOPIC], false, () => {});
       });
-      this.producer.on('error', (e) => {
+      this.kafkaProducer.on('error', (e) => {
         const defaultLogger = adapters.get('logger');
         if (defaultLogger && defaultLogger.winston) {
           defaultLogger.winston.error(e);
@@ -29,6 +33,12 @@ class Kafka extends stream.Subscriber {
     }
 
     this.cleanup = this.cleanup.bind(this);
+
+    process.once('exit', this.cleanup);
+    process.once('SIGINT', this.cleanup);
+    process.once('SIGTERM', this.cleanup);
+    process.once('uncaughtException', this.cleanup);
+
     this.name = 'KAFKA';
   }
 
@@ -40,21 +50,27 @@ class Kafka extends stream.Subscriber {
     return [null, undefined].includes(result) ? true : result;
   }
 
+  cleanup() {
+    if (this.kafkaClient) {
+      this.kafkaClient.close();
+    }
+  }
+
   handle(message) {
-    if (this.ready && message) {
+    if (this.ready && this.isEnabled() && message) {
       const content = message.payload;
       const messageLevel = this.logLevels.has(content.level) ? content.level : this.logLevels.get('default');
       const minLogLevel = this.getMinLogLevel(this.settings, this.name);
       if (this.logLevels.get(messageLevel) >= this.logLevels.get(minLogLevel)) {
         const metadata = message.stringifyMetadata();
-        this.producer.send({
+        this.kafkaProducer.send([{
           topic: this.settings.KAFKA_TOPIC,
           messages: {
             text: content.text,
             prefix: JSON.stringify(message.getPrefix(this.settings)),
             metadata
           }
-        });
+        }]);
       }
     }
   }
@@ -69,11 +85,9 @@ module.exports = (config) => {
     class: Kafka,
     config: configs
   };
-
   streamBuffer.addSubscriber(streamLinkData);
   const mergedConfigs = Object.assign({}, configs, stream.settings);
   stream.subscribe(new Kafka(mergedConfigs));
-
   return streamLinkData;
 };
 
