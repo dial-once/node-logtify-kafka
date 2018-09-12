@@ -9,27 +9,12 @@ class Kafka extends stream.Subscriber {
     super();
     this.ready = false;
     this.settings = configs || {};
+    this.kafkaClient = undefined;
+    this.kafkaProducer = undefined;
     if (this.settings.KAFKA_URL && this.settings.KAFKA_TOPIC) {
-      this.kafkaClient = new KafkaClient({
-        kafkaHost: this.settings.KAFKA_URL,
-        connectTimeout: this.settings.KAFKA_CONNECT_TIMEOUT || 5000,
-        requestTimeout: this.settings.KAFKA_REQUEST_TIMEOUT || 10000,
-        autoConnect: true
-      });
-      this.kafkaProducer = new Producer(this.kafkaClient);
-      this.kafkaProducer.once('ready', () => {
-        console.log('Kafka producer is ready');
-        this.ready = true;
-        this.kafkaProducer.createTopics([this.settings.KAFKA_TOPIC], false, () => {});
-      });
-      this.kafkaProducer.on('error', (e) => {
-        const defaultLogger = adapters.get('logger');
-        if (defaultLogger && defaultLogger.winston) {
-          defaultLogger.winston.error(e);
-        }
-      });
+      this.initialize();
     } else {
-      console.warn('Kafka logtify module is not active due to a missing KAFKA_URL and KAFKA_TOPIC');
+      console.warn('Kafka logtify module is not active due to a missing KAFKA_URL and/or KAFKA_TOPIC');
     }
 
     this.cleanup = this.cleanup.bind(this);
@@ -40,6 +25,26 @@ class Kafka extends stream.Subscriber {
     process.once('uncaughtException', this.cleanup);
 
     this.name = 'KAFKA';
+  }
+
+  initialize() {
+    this.kafkaClient = new KafkaClient({
+      kafkaHost: this.settings.KAFKA_URL,
+      connectTimeout: this.settings.KAFKA_CONNECT_TIMEOUT || 5000,
+      requestTimeout: this.settings.KAFKA_REQUEST_TIMEOUT || 10000,
+      autoConnect: true
+    });
+    this.kafkaProducer = new Producer(this.kafkaClient);
+    this.kafkaProducer.once('ready', () => {
+      this.ready = true;
+      this.kafkaProducer.createTopics([this.settings.KAFKA_TOPIC], false, () => {});
+    });
+    this.kafkaProducer.on('error', (e) => {
+      const defaultLogger = adapters.get('logger');
+      if (defaultLogger && defaultLogger.winston) {
+        defaultLogger.winston.error(e);
+      }
+    });
   }
 
   isEnabled() {
@@ -53,6 +58,7 @@ class Kafka extends stream.Subscriber {
   cleanup() {
     if (this.kafkaClient) {
       this.kafkaClient.close();
+      this.kafkaProducer.removeAllListeners('error');
     }
   }
 
@@ -62,12 +68,13 @@ class Kafka extends stream.Subscriber {
       const messageLevel = this.logLevels.has(content.level) ? content.level : this.logLevels.get('default');
       const minLogLevel = this.getMinLogLevel(this.settings, this.name);
       if (this.logLevels.get(messageLevel) >= this.logLevels.get(minLogLevel)) {
-        const metadata = message.stringifyMetadata();
+        const metadata = message.jsonifyMetadata();
         this.kafkaProducer.send([{
           topic: this.settings.KAFKA_TOPIC,
           messages: {
+            level: messageLevel,
             text: content.text,
-            prefix: JSON.stringify(message.getPrefix(this.settings)),
+            prefix: message.getPrefix(this.settings),
             metadata
           }
         }]);
