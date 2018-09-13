@@ -8,12 +8,12 @@ const { Message } = stream;
 
 describe('Kafka plugin', () => {
   before(() => {
-    delete process.env.KAFKA_URL;
+    delete process.env.KAFKA_HOST;
     delete process.env.KAFKA_TOPIC;
   });
 
   afterEach(() => {
-    delete process.env.KAFKA_URL;
+    delete process.env.KAFKA_HOST;
     delete process.env.KAFKA_TOPIC;
     delete process.env.KAFKA_LOGGING;
     delete process.env.MIN_LOG_LEVEL;
@@ -23,13 +23,13 @@ describe('Kafka plugin', () => {
   it('should return configs and a constructor', () => {
     const kafkaPackage = Kafka();
     assert.equal(typeof kafkaPackage, 'object');
-    assert.deepEqual(kafkaPackage.config, { KAFKA_URL: undefined, KAFKA_TOPIC: undefined });
+    assert.deepEqual(kafkaPackage.config, { KAFKA_HOST: undefined, KAFKA_TOPIC: undefined });
     assert.equal(typeof kafkaPackage.class, 'function');
     assert(kafkaPackage.class, Kafka.KafkaSubscriber);
   });
 
   it('should return given configs and a constructor', () => {
-    const configs = { KAFKA_URL: 'test', KAFKA_TOPIC: 'testTopic' };
+    const configs = { KAFKA_HOST: 'test', KAFKA_TOPIC: 'testTopic' };
     const kafkaPackage = Kafka(configs);
     assert.equal(typeof kafkaPackage, 'object');
     assert.deepEqual(kafkaPackage.config, configs);
@@ -54,7 +54,7 @@ describe('Kafka plugin', () => {
   it('should not be initialized if no url is provided', () => {
     const spy = sinon.spy(console, 'warn');
     const kafka = new Kafka.KafkaSubscriber({ KAFKA_TOPIC: 'testTopic' });
-    assert(spy.calledWith('Kafka logtify module is not active due to a missing KAFKA_URL and/or KAFKA_TOPIC'));
+    assert(spy.calledWith('Kafka logtify module is not active due to a missing KAFKA_HOST and/or KAFKA_TOPIC'));
     assert.equal(kafka.kafkaClient, undefined);
     assert.equal(kafka.kafkaProducer, undefined);
     assert.equal(kafka.ready, false);
@@ -63,8 +63,8 @@ describe('Kafka plugin', () => {
 
   it('should not be initialized if no topic was provided', () => {
     const spy = sinon.spy(console, 'warn');
-    const kafka = new Kafka.KafkaSubscriber({ KAFKA_URL: 'test' });
-    assert(spy.calledWith('Kafka logtify module is not active due to a missing KAFKA_URL and/or KAFKA_TOPIC'));
+    const kafka = new Kafka.KafkaSubscriber({ KAFKA_HOST: 'test' });
+    assert(spy.calledWith('Kafka logtify module is not active due to a missing KAFKA_HOST and/or KAFKA_TOPIC'));
     assert.equal(kafka.kafkaClient, undefined);
     assert.equal(kafka.kafkaProducer, undefined);
     assert.equal(kafka.ready, false);
@@ -72,13 +72,13 @@ describe('Kafka plugin', () => {
   });
 
   it('should be initialized if all configs were provided', () => {
-    const kafka = new Kafka.KafkaSubscriber({ KAFKA_TOPIC: 'testTopic', KAFKA_URL: 'test' });
+    const kafka = new Kafka.KafkaSubscriber({ KAFKA_TOPIC: 'testTopic', KAFKA_HOST: 'test' });
     assert.equal(typeof kafka.kafkaClient, 'object');
     assert.equal(typeof kafka.kafkaProducer, 'object');
   });
 
   it('should be ready if al configs provided [env]', () => {
-    process.env.KAFKA_URL = 'test';
+    process.env.KAFKA_HOST = 'test';
     process.env.KAFKA_TOPIC = 'testTopic';
     const subscriber = Kafka({});
     const kafka = new Kafka.KafkaSubscriber(subscriber.config);
@@ -116,7 +116,7 @@ describe('Kafka plugin', () => {
   it('should not break down if null is notified', () => {
     const kafka = new Kafka.KafkaSubscriber({
       KAFKA_LOGGING: true,
-      KAFKA_URL: 'test',
+      KAFKA_HOST: 'test',
       KAFKA_TOPIC: 'testTopic'
     });
     // setting manually because there is no broker and 'ready' even will never be fired
@@ -127,7 +127,7 @@ describe('Kafka plugin', () => {
   it('should log message if KAFKA_LOGGING = true', () => {
     const kafka = new Kafka.KafkaSubscriber({
       KAFKA_LOGGING: true,
-      KAFKA_URL: 'test',
+      KAFKA_HOST: 'test',
       KAFKA_TOPIC: 'testTopic'
     });
     // setting manually because there is no broker and 'ready' even will never be fired
@@ -142,7 +142,7 @@ describe('Kafka plugin', () => {
   it('should not log message if KAFKA_LOGGING = false', () => {
     const kafka = new Kafka.KafkaSubscriber({
       KAFKA_LOGGING: false,
-      KAFKA_URL: 'test',
+      KAFKA_HOST: 'test',
       KAFKA_TOPIC: 'testTopic'
     });
     // setting manually because there is no broker and 'ready' even will never be fired
@@ -157,7 +157,7 @@ describe('Kafka plugin', () => {
   it('should not log if message level < MIN_LOG_LEVEL [settings]', () => {
     const kafka = new Kafka.KafkaSubscriber({
       KAFKA_LOGGING: true,
-      KAFKA_URL: 'test',
+      KAFKA_HOST: 'test',
       KAFKA_TOPIC: 'testTopic',
       MIN_LOG_LEVEL: 'error'
     });
@@ -173,7 +173,7 @@ describe('Kafka plugin', () => {
   it('should not log if message level < MIN_LOG_LEVEL [envs]', () => {
     const kafka = new Kafka.KafkaSubscriber({
       KAFKA_LOGGING: true,
-      KAFKA_URL: 'test',
+      KAFKA_HOST: 'test',
       KAFKA_TOPIC: 'testTopic'
     });
     // setting manually because there is no broker and 'ready' even will never be fired
@@ -188,7 +188,7 @@ describe('Kafka plugin', () => {
 
   it('should log if message level >= MIN_LOG_LEVEL_KAFKA but < MIN_LOG_LEVEL [envs]', () => {
     const kafka = new Kafka.KafkaSubscriber({
-      KAFKA_URL: 'test',
+      KAFKA_HOST: 'test',
       KAFKA_TOPIC: 'testTopic',
       KAFKA_LOGGING: true
     });
@@ -205,7 +205,7 @@ describe('Kafka plugin', () => {
 
   it('should log if message level = MIN_LOG_LEVEL [envs]', () => {
     const kafka = new Kafka.KafkaSubscriber({
-      KAFKA_URL: 'test',
+      KAFKA_HOST: 'test',
       KAFKA_TOPIC: 'testTopic',
       KAFKA_LOGGING: true
     });
@@ -221,7 +221,7 @@ describe('Kafka plugin', () => {
 
   it('should log if message level > MIN_LOG_LEVEL [envs]', () => {
     const kafka = new Kafka.KafkaSubscriber({
-      KAFKA_URL: 'test',
+      KAFKA_HOST: 'test',
       KAFKA_TOPIC: 'testTopic',
       KAFKA_LOGGING: true
     });
@@ -237,7 +237,7 @@ describe('Kafka plugin', () => {
 
   it('should correctly process a message', () => {
     const kafka = new Kafka.KafkaSubscriber({
-      KAFKA_URL: 'test',
+      KAFKA_HOST: 'test',
       KAFKA_TOPIC: 'testTopic',
       KAFKA_LOGGING: true,
       JSONIFY: true
@@ -276,7 +276,7 @@ describe('Kafka plugin', () => {
 
   it('should correctly handle error sent as a message [msg body]', () => {
     const kafka = new Kafka.KafkaSubscriber({
-      KAFKA_URL: 'test',
+      KAFKA_HOST: 'test',
       KAFKA_TOPIC: 'testTopic',
       KAFKA_LOGGING: true,
       JSONIFY: true
@@ -294,6 +294,52 @@ describe('Kafka plugin', () => {
         messages: {
           level: 'error',
           text: message.payload.text,
+          prefix: {
+            timestamp: '',
+            environment: '',
+            logLevel: '',
+            reqId: '',
+            isEmpty: true
+          },
+          metadata: {
+            error: serializeError(error),
+            instanceId: message.payload.meta.instanceId,
+            hello: 'world',
+            one: 1,
+            two: '2'
+          }
+        },
+        partition: 0,
+        attributes: 0
+      }]);
+    spy.restore();
+  });
+
+  it('should correctly handle error sent as a message metadata [msg body]', () => {
+    const kafka = new Kafka.KafkaSubscriber({
+      KAFKA_HOST: 'test',
+      KAFKA_TOPIC: 'testTopic',
+      KAFKA_LOGGING: true,
+      JSONIFY: true
+    });
+    // setting manually because there is no broker and 'ready' even will never be fired
+    kafka.ready = true;
+    const spy = sinon.spy(kafka.kafkaProducer, 'send');
+    const error = new Error('Sprint plan was modified');
+    const message = new Message('error', 'OMG!!!', {
+      error,
+      hello: 'world',
+      one: 1,
+      two: '2'
+    });
+    kafka.handle(message);
+    assert(spy.called);
+    assert.deepEqual(spy.args[0][0],
+      [{
+        topic: 'testTopic',
+        messages: {
+          level: 'error',
+          text: 'OMG!!!',
           prefix: {
             timestamp: '',
             environment: '',

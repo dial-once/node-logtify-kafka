@@ -4,6 +4,9 @@ const logtify = require('logtify');
 const { streamBuffer } = logtify;
 const { stream, adapters } = logtify();
 
+/**
+ * Kafka plugin for logtify
+ */
 class Kafka extends stream.Subscriber {
   constructor(configs) {
     super();
@@ -11,10 +14,10 @@ class Kafka extends stream.Subscriber {
     this.settings = configs || {};
     this.kafkaClient = undefined;
     this.kafkaProducer = undefined;
-    if (this.settings.KAFKA_URL && this.settings.KAFKA_TOPIC) {
+    if (this.settings.KAFKA_HOST && this.settings.KAFKA_TOPIC) {
       this.initialize();
     } else {
-      console.warn('Kafka logtify module is not active due to a missing KAFKA_URL and/or KAFKA_TOPIC');
+      console.warn('Kafka logtify module is not active due to a missing KAFKA_HOST and/or KAFKA_TOPIC');
     }
 
     this.cleanup = this.cleanup.bind(this);
@@ -27,9 +30,13 @@ class Kafka extends stream.Subscriber {
     this.name = 'KAFKA';
   }
 
+  /**
+   * Initialize kafka client, producer and connect them to kafka broker
+   * @return void
+   */
   initialize() {
     this.kafkaClient = new KafkaClient({
-      kafkaHost: this.settings.KAFKA_URL,
+      kafkaHost: this.settings.KAFKA_HOST,
       connectTimeout: this.settings.KAFKA_CONNECT_TIMEOUT || 5000,
       requestTimeout: this.settings.KAFKA_REQUEST_TIMEOUT || 10000,
       autoConnect: true
@@ -47,6 +54,10 @@ class Kafka extends stream.Subscriber {
     });
   }
 
+  /**
+   * Check if this particular plugin is enabled
+   * @return {Boolean} - the status of the plugin
+   */
   isEnabled() {
     const result = ['true', 'false'].includes(process.env.KAFKA_LOGGING)
       ? process.env.KAFKA_LOGGING === 'true'
@@ -55,6 +66,10 @@ class Kafka extends stream.Subscriber {
     return [null, undefined].includes(result) ? true : result;
   }
 
+  /**
+   * A function that is called when the plugin is unlinked or the project is closed
+   * @return {void}
+   */
   cleanup() {
     if (this.kafkaClient) {
       this.kafkaClient.close();
@@ -62,6 +77,11 @@ class Kafka extends stream.Subscriber {
     }
   }
 
+  /**
+   * Format and send the given message to the kafka broker
+   * @param  {Object} message - and instance of a Message class exposed by the logtify module.
+   * @return {void}
+   */
   handle(message) {
     if (this.ready && this.isEnabled() && message) {
       const content = message.payload;
@@ -83,9 +103,14 @@ class Kafka extends stream.Subscriber {
   }
 }
 
+/**
+ * Configuration function. Receives plugin-specific settings
+ * @param  {Object} config - configurations for this particular plugin
+ * @return {Object} - { class: Kafka, config: object }
+ */
 module.exports = (config) => {
   const configs = Object.assign({
-    KAFKA_URL: process.env.KAFKA_URL,
+    KAFKA_HOST: process.env.KAFKA_HOST,
     KAFKA_TOPIC: process.env.KAFKA_TOPIC
   }, config);
   const streamLinkData = {
