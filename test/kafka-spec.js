@@ -54,7 +54,8 @@ describe('Kafka plugin', () => {
   });
 
   it('should not be initialized if no url is provided', () => {
-    const spy = sinon.spy(console, 'warn');
+    const logger = stream.adapters.get('logger');
+    const spy = sinon.spy(logger, 'warn');
     const kafka = new Kafka.KafkaSubscriber({ KAFKA_TOPIC: 'testTopic' });
     assert(spy.calledWith('Kafka logtify module is not active due to a missing KAFKA_HOST and/or KAFKA_TOPIC'));
     assert.equal(kafka.kafkaClient, undefined);
@@ -64,7 +65,8 @@ describe('Kafka plugin', () => {
   });
 
   it('should not be initialized if no topic was provided', () => {
-    const spy = sinon.spy(console, 'warn');
+    const logger = stream.adapters.get('logger');
+    const spy = sinon.spy(logger, 'warn');
     const kafka = new Kafka.KafkaSubscriber({ KAFKA_HOST: 'test' });
     assert(spy.calledWith('Kafka logtify module is not active due to a missing KAFKA_HOST and/or KAFKA_TOPIC'));
     assert.equal(kafka.kafkaClient, undefined);

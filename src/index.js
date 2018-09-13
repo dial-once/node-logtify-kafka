@@ -2,7 +2,7 @@ const { Producer, KafkaClient } = require('kafka-node');
 const logtify = require('logtify');
 
 const { streamBuffer } = logtify;
-const { stream, adapters } = logtify();
+const { stream } = logtify();
 
 /**
  * Kafka plugin for logtify
@@ -14,10 +14,13 @@ class Kafka extends stream.Subscriber {
     this.settings = configs || {};
     this.kafkaClient = undefined;
     this.kafkaProducer = undefined;
+
+    this.defaultLogger = stream.adapters.get('logger');
     if (this.settings.KAFKA_HOST && this.settings.KAFKA_TOPIC) {
       this.initialize();
     } else {
-      console.warn('Kafka logtify module is not active due to a missing KAFKA_HOST and/or KAFKA_TOPIC');
+      (this.defaultLogger || console)
+        .warn('Kafka logtify module is not active due to a missing KAFKA_HOST and/or KAFKA_TOPIC');
     }
 
     this.cleanup = this.cleanup.bind(this);
@@ -47,10 +50,7 @@ class Kafka extends stream.Subscriber {
       this.kafkaProducer.createTopics([this.settings.KAFKA_TOPIC], false, () => {});
     });
     this.kafkaProducer.on('error', (e) => {
-      const defaultLogger = adapters.get('logger');
-      if (defaultLogger && defaultLogger.winston) {
-        defaultLogger.winston.error(e);
-      }
+      (this.defaultLogger || console).error(e);
     });
   }
 
