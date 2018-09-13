@@ -37,8 +37,8 @@ class Kafka extends stream.Subscriber {
   initialize() {
     this.kafkaClient = new KafkaClient({
       kafkaHost: this.settings.KAFKA_HOST,
-      connectTimeout: this.settings.KAFKA_CONNECT_TIMEOUT || 5000,
-      requestTimeout: this.settings.KAFKA_REQUEST_TIMEOUT || 10000,
+      connectTimeout: process.env.KAFKA_CONNECT_TIMEOUT || this.settings.KAFKA_CONNECT_TIMEOUT || 5000,
+      requestTimeout: process.env.KAFKA_REQUEST_TIMEOUT || this.settings.KAFKA_REQUEST_TIMEOUT || 10000,
       autoConnect: true
     });
     this.kafkaProducer = new Producer(this.kafkaClient);

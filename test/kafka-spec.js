@@ -18,6 +18,8 @@ describe('Kafka plugin', () => {
     delete process.env.KAFKA_LOGGING;
     delete process.env.MIN_LOG_LEVEL;
     delete process.env.MIN_LOG_LEVEL_KAFKA;
+    delete process.env.KAFKA_CONNECT_TIMEOUT;
+    delete process.env.KAFKA_REQUEST_TIMEOUT;
   });
 
   it('should return configs and a constructor', () => {
@@ -152,6 +154,30 @@ describe('Kafka plugin', () => {
     kafka.handle(message);
     assert(!spy.called);
     spy.restore();
+  });
+
+  it('should accept additional settings parameters as one of the settings', () => {
+    const kafka = new Kafka.KafkaSubscriber({
+      KAFKA_LOGGING: false,
+      KAFKA_HOST: 'test',
+      KAFKA_TOPIC: 'testTopic',
+      KAFKA_CONNECT_TIMEOUT: 1000,
+      KAFKA_REQUEST_TIMEOUT: 1000
+    });
+    assert.equal(kafka.kafkaClient.options.connectTimeout, 1000);
+    assert.equal(kafka.kafkaClient.options.requestTimeout, 1000);
+  });
+
+  it('should accept additional settings parameters as one of the settings [env]', () => {
+    process.env.KAFKA_CONNECT_TIMEOUT = 1000;
+    process.env.KAFKA_REQUEST_TIMEOUT = 1000;
+    const kafka = new Kafka.KafkaSubscriber({
+      KAFKA_LOGGING: false,
+      KAFKA_HOST: 'test',
+      KAFKA_TOPIC: 'testTopic'
+    });
+    assert.equal(kafka.kafkaClient.options.connectTimeout, 1000);
+    assert.equal(kafka.kafkaClient.options.requestTimeout, 1000);
   });
 
   it('should not log if message level < MIN_LOG_LEVEL [settings]', () => {
