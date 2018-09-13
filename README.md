@@ -9,7 +9,7 @@ npm i -S logtify-kafka
 ```
 
 ## Usage
-Used with[logtify](https://github.com/dial-once/node-logtify) module.
+Used with [logtify](https://github.com/dial-once/node-logtify) module.
 
 ```js
 require('logtify-kafka')({ KAFKA_HOST: 'kafka-broker.io:9092', KAFKA_TOPIC: 'example' });

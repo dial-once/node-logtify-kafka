@@ -26,9 +26,6 @@ class Kafka extends stream.Subscriber {
     this.cleanup = this.cleanup.bind(this);
 
     process.once('exit', this.cleanup);
-    process.once('SIGINT', this.cleanup);
-    process.once('SIGTERM', this.cleanup);
-    process.once('uncaughtException', this.cleanup);
 
     this.name = 'KAFKA';
   }
