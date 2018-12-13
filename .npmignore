@@ -3,6 +3,8 @@
 .git
 node_modules
 coverage
+.nyc_output
+.circleci
 test
 .sonar
 .gitignore

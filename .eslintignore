@@ -2,6 +2,7 @@
 /bin/**
 /build/**
 /coverage/**
+/.nyc_output/**
 /docs/**
 /jsdoc/**
 /templates/**
@@ -13,6 +14,7 @@
 /node_modules/**
 /lib-cov/**
 /.grunt/**
+/.circleci/**
 /.sonar/**
 /logs/**
 /.idea/**
